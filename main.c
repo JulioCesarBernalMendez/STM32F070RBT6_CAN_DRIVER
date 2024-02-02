@@ -98,7 +98,7 @@ int main( void )
    CAN1_Handler.opmode            = NORMAL_OP_MODE;
    CAN_Control_Init( &CAN1_Handler );
 
-   /* Initialize CAN controller MCP2515 #2 (uses SPI1, see pinout at the top of this file) to the following parameters */
+   /* Initialize CAN controller MCP2515 #2 (uses SPI2, see pinout at the top of this file) */
    CAN2_Handler.spi               = CAN_SPI2;
    CAN2_Handler.baudrate          = CAN_BAUD_125_KBPS;
    CAN2_Handler.oneshot           = ONE_SHOT_MSG_REATTEMPT;
@@ -115,7 +115,7 @@ int main( void )
    /* Set all the 11 bits (standard ID field) in the RXM0 mask (RX buffer 0)
       and set all the 29 bit (standard ID and extended ID fields) in the RXM1 mask (RX buffer 1)
       (this means that receiving CAN frames must match the value provided in the configured filter 0 or 1 (for RX buffer 0)
-      or filter 1 or 2 or 3 or 4 or 5 (for RX buffer 1) to be accepted).
+      or filter 2 or 3 or 4 or 5 (for RX buffer 1) to be accepted).
       Also take into consideration the operation mode used for the RX buffer mode (see CAN2_Handler.rxbufferopmode) */
    CAN2_Masks.rxmasknmbr = RXM0 | RXM1;        /* masks to configure */
    CAN2_Masks.rxmaskvalue[ 0 ] = 0x1FFC0000UL; /* mask value for RXM0 (applies to RXB0 receiving buffer) */
@@ -128,7 +128,7 @@ int main( void )
         are accepted by RX buffer 0.
       - Filter 2 or 3 or 4 or 5 apply to RX buffer 1, for this only CAN frames with a complete ID (filter 2) of 0x1D0CAFC8 (and 3 more 'undetermined' IDs due
         to filter 3, 4 and 5 not being set) are accepted by RX buffer 1 */
-   CAN2_Filters.rxfilternmbr       = RXF0 | RXF2;
+   CAN2_Filters.rxfilternmbr       = RXF0 | RXF2;  /* Filters to configure */
    CAN2_Filters.rxfiltervalue[ 0 ] = 0x15540000UL; /* RXF0: Standard ID = 0x555 */
    CAN2_Filters.rxfiltervalue[ 2 ] = 0x1D0CAFC8UL; /* RXF2: Complete ID: 0x1D0CAFC8, standard ID = 0x743, extended ID = 0xAFC8 */
    CAN2_Filters.extendedidenable   = RXF0_EXTENDED_ID_DISABLED | RXF2_EXTENDED_ID_ENABLED; /* Filter 0 applied to standard CAN frames, Filter 2 applied to extended CAN frames */
@@ -172,7 +172,7 @@ int main( void )
    tx_status[ 2 ] = CAN_Control_TX_CAN_Status( &CAN1_Handler, TXB2 ); /* should be read TX_SUCCESS (0x05) */
 
    /* Read interrupt flags of both MCP2515 #1 and MCP2515 #2 */
-   int_status[ 0 ] = CAN_Control_INT_Status( &CAN1_Handler ); /* should be TX2IF = 1, TX1IF = 1 and TX1IF = 1 since successful CAN frames sent */
+   int_status[ 0 ] = CAN_Control_INT_Status( &CAN1_Handler ); /* should be TX2IF = 1, TX1IF = 1 and TX0IF = 1 since successful CAN frames sent */
    int_status[ 1 ] = CAN_Control_INT_Status( &CAN2_Handler ); /* should be RX1IF = 1 and RX0IF = 1 since successful CAN frames received */
 
    /* Read any CAN frames received on RXB0 and RXB1 buffers of the MCP2515 #2 */
@@ -183,7 +183,7 @@ int main( void )
    CAN_Control_Enable_INT( &CAN1_Handler, TX0IE_TXB0_EMPTY_INTERRUPT_DISABLED );
 
    /* Read interrupt flags of MCP2515 #1 again */
-   int_status[ 0 ] = CAN_Control_INT_Status( &CAN1_Handler ); /* should be TX2IF = 1, TX1IF = 1 and TX1IF = 1 since 
+   int_status[ 0 ] = CAN_Control_INT_Status( &CAN1_Handler ); /* should be TX2IF = 1, TX1IF = 1 and TX0IF = 1 since 
                                                                  disabling interrupts does not clear any flag */
 
    /* Clear Interrupt flags on both MCP2515 #1 and #2 */
@@ -207,7 +207,7 @@ int main( void )
    /* Read MCP2515 #1 Errors
       Note: before executing this, undo the bus shortcircuit to prevent the MCP2515 to go from bus-off to active-error (automatically)
             to passive-error (due to shortcircuit) to bus-off (due to shortcircuit) and so on...
-            Undoing the shortcircuit when the MCP2515 is at error-active or error-passive will cause the MCP2515 #1 TXBO CAN frame
+            Undoing the shortcircuit when the MCP2515 is at error-active or error-passive will cause the TXB0 CAN frame from MCP2515 #1
             to be sent successfully (due to one-shot disabled and msgs reattempt transmission).
 
       There are 3 possibilites:
@@ -237,7 +237,7 @@ int main( void )
             TEC and REC error counters and return to active-error state */
          CAN_Control_Set_Op_Mode( &CAN1_Handler, CONFIGURATION_OP_MODE );
          
-         /* Set MCP2515 #2 back to normal operation mode */
+         /* Set MCP2515 #1 back to normal operation mode */
          CAN_Control_Set_Op_Mode( &CAN1_Handler, NORMAL_OP_MODE );
 
          /* Read MCP2515 #1 Errors */
